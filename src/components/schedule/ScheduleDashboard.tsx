@@ -35,15 +35,27 @@ export function ScheduleDashboard({
   const [sections, setSections] = useState(initialSections);
   const isMobile = useIsMobile();
   const [currentIdx, setCurrentIdx] = React.useState(0);
-  const [swiping, setSwiping] = React.useState<null | "left" | "right">(null);
-  const [dragX, setDragX] = React.useState(0);
-  const [isDragging, setIsDragging] = React.useState(false);
+  const [fadeKey, setFadeKey] = React.useState(0);
 
   // 當初始資料變更時更新本地狀態
   React.useEffect(() => {
     setSections(initialSections);
     setCurrentIdx(0);
   }, [initialSections]);
+
+  // 當 sections 變動時自動 reset currentIdx
+  React.useEffect(() => {
+    setCurrentIdx(0);
+  }, [sections]);
+
+  // 防呆：currentIdx 不超出範圍
+  const safeIdx = Math.max(0, Math.min(currentIdx, sections.length - 1));
+  const section = sections[safeIdx];
+
+  // 切換動畫 key
+  React.useEffect(() => {
+    setFadeKey(safeIdx);
+  }, [safeIdx]);
 
   const handleOrderChange = (sectionId: string, newOrder: ScheduleItem[]) => {
     // 更新本地狀態
@@ -58,40 +70,6 @@ export function ScheduleDashboard({
       onOrderChange(sectionId, newOrder);
     }
   };
-
-  // swipe handlers
-  const swipeHandlers = useSwipeable({
-    onSwiping: (e) => {
-      if (!isMobile) return;
-      setIsDragging(true);
-      setDragX(e.deltaX);
-      if (e.dir === "Left" && currentIdx < sections.length - 1)
-        setSwiping("left");
-      else if (e.dir === "Right" && currentIdx > 0) setSwiping("right");
-      else setSwiping(null);
-    },
-    onSwiped: (e) => {
-      if (!isMobile) return;
-      setIsDragging(false);
-      setSwiping(null);
-      setDragX(0);
-      const threshold = 0.2 * window.innerWidth; // 20% 螢幕寬
-      if (
-        e.dir === "Left" &&
-        Math.abs(e.deltaX) > threshold &&
-        currentIdx < sections.length - 1
-      ) {
-        setCurrentIdx((idx) => Math.min(idx + 1, sections.length - 1));
-      } else if (
-        e.dir === "Right" &&
-        Math.abs(e.deltaX) > threshold &&
-        currentIdx > 0
-      ) {
-        setCurrentIdx((idx) => Math.max(idx - 1, 0));
-      }
-    },
-    trackMouse: true,
-  });
 
   if (loading) {
     return (
@@ -153,87 +131,43 @@ export function ScheduleDashboard({
   }
 
   if (isMobile) {
-    // 計算 translateX
-    const baseTranslate = -currentIdx * 100;
-    const dragPercent = isDragging ? (dragX / window.innerWidth) * 100 : 0;
-    const translateX = baseTranslate + dragPercent;
+    if (!section) return null;
     return (
-      <div
-        {...swipeHandlers}
-        className={cn(
-          "relative overflow-hidden touch-pan-x select-none",
-          className
-        )}
-      >
-        {/* 滑動容器 */}
-        <div
-          className={
-            "flex" +
-            (isDragging ? "" : " transition-transform duration-300 ease-out")
-          }
-          style={{
-            transform: `translateX(${translateX}%)`,
-            width: `${sections.length * 100}%`,
-          }}
-        >
-          {sections.map((section, index) => (
-            <div
-              key={section.id}
-              className="w-full flex-shrink-0 px-2"
-              style={{ width: `${100 / sections.length}%` }}
-            >
-              <DraggableScheduleSection
-                section={section}
-                onOrderChange={handleOrderChange}
-                isMobile
-              />
-            </div>
-          ))}
-        </div>
-
-        {/* 滑動提示 icon */}
-        {swiping && (
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-20">
-            {swiping === "left" && (
-              <ChevronRight className="w-16 h-16 text-blue-400 opacity-80 animate-bounce-x" />
-            )}
-            {swiping === "right" && (
-              <ChevronLeft className="w-16 h-16 text-blue-400 opacity-80 animate-bounce-x-reverse" />
-            )}
-          </div>
-        )}
-
-        {/* 左右切換指示器 */}
-        <div className="flex justify-between items-center mt-4 px-4">
+      <div className={cn("relative", className)}>
+        {/* 上方切換按鈕與班表名稱 */}
+        <div className="flex items-center justify-between mb-4 px-2">
           <button
             onClick={() => setCurrentIdx((idx) => Math.max(idx - 1, 0))}
-            disabled={currentIdx === 0}
-            className="p-2 rounded-full bg-white shadow-md text-gray-600 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors"
+            disabled={safeIdx === 0}
+            className="p-2 rounded-full bg-white shadow text-gray-600 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors"
           >
-            ◀
+            <ChevronLeft className="w-5 h-5" />
           </button>
-          <div className="flex gap-1">
-            {sections.map((_, index) => (
-              <button
-                key={index}
-                onClick={() => setCurrentIdx(index)}
-                className={`w-2 h-2 rounded-full transition-colors ${
-                  index === currentIdx
-                    ? "bg-blue-500"
-                    : "bg-gray-300 hover:bg-gray-400"
-                }`}
-              />
-            ))}
+          <div className="flex-1 text-center text-base font-semibold text-gray-800">
+            {section.title}{" "}
+            <span className="text-xs text-gray-500">
+              ({safeIdx + 1}/{sections.length})
+            </span>
           </div>
           <button
             onClick={() =>
               setCurrentIdx((idx) => Math.min(idx + 1, sections.length - 1))
             }
-            disabled={currentIdx === sections.length - 1}
-            className="p-2 rounded-full bg-white shadow-md text-gray-600 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors"
+            disabled={safeIdx === sections.length - 1}
+            className="p-2 rounded-full bg-white shadow text-gray-600 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors"
           >
-            ▶
+            <ChevronRight className="w-5 h-5" />
           </button>
+        </div>
+        <div
+          key={fadeKey}
+          className="transition-opacity duration-300 opacity-100"
+        >
+          <DraggableScheduleSection
+            section={section}
+            onOrderChange={handleOrderChange}
+            isMobile
+          />
         </div>
       </div>
     );

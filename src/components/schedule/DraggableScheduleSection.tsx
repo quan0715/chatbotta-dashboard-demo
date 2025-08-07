@@ -84,6 +84,7 @@ export function DraggableScheduleSection({
   onOrderChange?: (sectionId: string, newOrder: ScheduleItem[]) => void;
   isMobile?: boolean;
 }) {
+  console.log("section", section);
   const { title, color, assistantCount, schedules: initialSchedules } = section;
   const [schedules, setSchedules] = useState(initialSchedules);
 
@@ -162,8 +163,8 @@ export function DraggableScheduleSection({
                   color={color as any}
                 />
               </div>
-              {/* 垂直排列卡片 */}
-              <div className="flex-1">
+              {/* 垂直排列卡片，可捲動 */}
+              <div className="flex-1 max-h-[70vh] overflow-y-auto">
                 <div className="flex flex-col gap-4 pb-2">
                   {allSchedules.map((employee) => (
                     <DraggableScheduleCard
