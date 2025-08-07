@@ -36,6 +36,8 @@ export function ScheduleDashboard({
   const isMobile = useIsMobile();
   const [currentIdx, setCurrentIdx] = React.useState(0);
   const [swiping, setSwiping] = React.useState<null | "left" | "right">(null);
+  const [dragX, setDragX] = React.useState(0);
+  const [isDragging, setIsDragging] = React.useState(false);
 
   // 當初始資料變更時更新本地狀態
   React.useEffect(() => {
@@ -59,21 +61,35 @@ export function ScheduleDashboard({
 
   // swipe handlers
   const swipeHandlers = useSwipeable({
-    onSwipedLeft: () => {
-      setSwiping(null);
-      setCurrentIdx((idx) => Math.min(idx + 1, sections.length - 1));
-    },
-    onSwipedRight: () => {
-      setSwiping(null);
-      setCurrentIdx((idx) => Math.max(idx - 1, 0));
-    },
     onSwiping: (e) => {
+      if (!isMobile) return;
+      setIsDragging(true);
+      setDragX(e.deltaX);
       if (e.dir === "Left" && currentIdx < sections.length - 1)
         setSwiping("left");
       else if (e.dir === "Right" && currentIdx > 0) setSwiping("right");
       else setSwiping(null);
     },
-    onSwiped: () => setSwiping(null),
+    onSwiped: (e) => {
+      if (!isMobile) return;
+      setIsDragging(false);
+      setSwiping(null);
+      setDragX(0);
+      const threshold = 0.2 * window.innerWidth; // 20% 螢幕寬
+      if (
+        e.dir === "Left" &&
+        Math.abs(e.deltaX) > threshold &&
+        currentIdx < sections.length - 1
+      ) {
+        setCurrentIdx((idx) => Math.min(idx + 1, sections.length - 1));
+      } else if (
+        e.dir === "Right" &&
+        Math.abs(e.deltaX) > threshold &&
+        currentIdx > 0
+      ) {
+        setCurrentIdx((idx) => Math.max(idx - 1, 0));
+      }
+    },
     trackMouse: true,
   });
 
@@ -137,16 +153,26 @@ export function ScheduleDashboard({
   }
 
   if (isMobile) {
+    // 計算 translateX
+    const baseTranslate = -currentIdx * 100;
+    const dragPercent = isDragging ? (dragX / window.innerWidth) * 100 : 0;
+    const translateX = baseTranslate + dragPercent;
     return (
       <div
         {...swipeHandlers}
-        className={cn("relative overflow-hidden", className)}
+        className={cn(
+          "relative overflow-hidden touch-pan-x select-none",
+          className
+        )}
       >
         {/* 滑動容器 */}
         <div
-          className="flex transition-transform duration-300 ease-out"
+          className={
+            "flex" +
+            (isDragging ? "" : " transition-transform duration-300 ease-out")
+          }
           style={{
-            transform: `translateX(-${currentIdx * 100}%)`,
+            transform: `translateX(${translateX}%)`,
             width: `${sections.length * 100}%`,
           }}
         >
