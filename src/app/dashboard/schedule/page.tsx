@@ -81,45 +81,39 @@ export default function SchedulePage() {
       {/* 頁面標題區域 */}
       <div className="bg-white border-b border-gray-200 px-6 py-6">
         <div className="max-w-7xl mx-auto">
-          <div className="flex flex-col items-start gap-4 mb-4">
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-4 gap-4">
             <div>
               <h1 className="text-3xl font-bold text-gray-900 mb-2">
                 排班管理儀表板
               </h1>
               <p className="text-gray-600">美髮沙龍助理排班一覽</p>
             </div>
-            {getSourceBadge()}
-            <div className="flex flex-col gap-2 w-full max-w-xs">
-              {hasChanges && (
-                <Button
-                  onClick={handleSaveChanges}
-                  variant="default"
-                  size="sm"
-                  disabled={saving}
-                  className="flex items-center gap-2 bg-green-600 hover:bg-green-700"
-                >
-                  <Save
-                    className={`w-4 h-4 ${saving ? "animate-pulse" : ""}`}
-                  />
-                  {saving ? "儲存中..." : "儲存變更"}
-                </Button>
-              )}
+            <div className="flex flex-col sm:flex-row gap-2">
               <Button
                 onClick={refetch}
                 variant="outline"
-                size="sm"
+                size="icon"
                 disabled={loading}
-                className="flex items-center gap-2"
+                className="flex items-center justify-center w-10 h-10"
               >
                 <RefreshCw
-                  className={`w-4 h-4 ${loading ? "animate-spin" : ""}`}
+                  className={`w-5 h-5 ${loading ? "animate-spin" : ""}`}
                 />
-                重新整理
               </Button>
+              {hasChanges && (
+                <Button
+                  onClick={handleSaveChanges}
+                  disabled={saving}
+                  className="flex items-center gap-2"
+                >
+                  <Save className="w-4 h-4" />
+                  {saving ? "儲存中..." : "儲存變更"}
+                </Button>
+              )}
             </div>
           </div>
 
-          {/* 資料來源資訊 */}
+          {/* 資料來源資訊已移除 */}
           {lastUpdated && (
             <p className="text-sm text-gray-500">
               最後更新時間：{new Date(lastUpdated).toLocaleString("zh-TW")}

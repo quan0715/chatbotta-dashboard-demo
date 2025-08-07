@@ -36,6 +36,7 @@ export function ScheduleDashboard({
   const isMobile = useIsMobile();
   const [currentIdx, setCurrentIdx] = React.useState(0);
   const [fadeKey, setFadeKey] = React.useState(0);
+  const prevSectionsLen = React.useRef(sections.length);
 
   // 當初始資料變更時更新本地狀態
   React.useEffect(() => {
@@ -43,10 +44,13 @@ export function ScheduleDashboard({
     setCurrentIdx(0);
   }, [initialSections]);
 
-  // 當 sections 變動時自動 reset currentIdx
+  // 只在 sections.length 變動時才 reset currentIdx
   React.useEffect(() => {
-    setCurrentIdx(0);
-  }, [sections]);
+    if (sections.length !== prevSectionsLen.current) {
+      setCurrentIdx(0);
+      prevSectionsLen.current = sections.length;
+    }
+  }, [sections.length]);
 
   // 防呆：currentIdx 不超出範圍
   const safeIdx = Math.max(0, Math.min(currentIdx, sections.length - 1));
